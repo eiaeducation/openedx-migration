@@ -1,10 +1,42 @@
 # Open edX Redwood tutor build
 
-- contact: Lawrence McDaniel +1 (617) 834-6172, lpm0073@gmail.com, https://lawrencemcdaniel.com
+- client contact: Brenton Kreiger, +1 (401) 808-9575, brenton.kreiger@eiabridges.org
+- consultant contact: Lawrence McDaniel +1 (617) 834-6172, lpm0073@gmail.com, https://lawrencemcdaniel.com
 - start date: 22-jul-2024
+
+Migration from Koa native build to tutor redwood.
+
+Original source server:
+
+```bash
+Host bedu-prod
+  HostName eiaeducation.org
+  User ubuntu
+  IdentityFile ~/.ssh/bedu_key_3.3.pem
+  IdentitiesOnly yes
+```
+
+Target server:
+
+```bash
+Host bedu
+  HostName 52.5.202.56
+  User ubuntu
+  IdentityFile ~/.ssh/eia-openedx-redwood.pem
+  IdentitiesOnly yes
+```
+
+AWS S3 Source data:
+
+- s3://bridgeedu/backups/openedx-mysql-20240724T060001.tgz
+- s3://bridgeedu/backups/mongo-dump-20240724T060001.tgz
+
+AWS IAM User: arn:aws:iam::120088116466:user/lpm0073
+
 
 ## EC2 AMI
 
+(subscription required)
 ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-20230328
 
 ## ubuntu packages

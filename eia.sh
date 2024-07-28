@@ -68,8 +68,8 @@ SOURCE_AWS_S3_STORAGE_BUCKET_SOURCE="bridgeedu"                 # assumes that y
 # target data
 # -----------------------------------------------------------------------------
 TARGET_AWS_S3_STORAGE_BUCKET="bridgeedu"
-TARGET_KUBERNETES_OPENEDX_NAMESPACE="SET-ME-PLEASE"             # the k8s namespace to which your target environment is deployed
-TARGET_KUBERNETES_SERVICE_NAMESPACE="SET-ME-PLEASE"             # the k8s namespace for your shared infrastructure services: mysql, mongo, redis, etcetera
+# TARGET_KUBERNETES_OPENEDX_NAMESPACE="SET-ME-PLEASE"             # the k8s namespace to which your target environment is deployed
+# TARGET_KUBERNETES_SERVICE_NAMESPACE="SET-ME-PLEASE"             # the k8s namespace for your shared infrastructure services: mysql, mongo, redis, etcetera
 
 # 1. Prepare the local environment
 # -------------------------------
@@ -81,6 +81,14 @@ if [ ! -d "/home/ubuntu/migration/backups" ]; then
     mkdir /home/ubuntu/migration/backups
     echo "created directory /home/ubuntu/migration/backups"
 fi
+if [ ! -d "/home/ubuntu/migration/backups/mysql" ]; then
+    mkdir /home/ubuntu/migration/backups/mysql
+    echo "created directory /home/ubuntu/migration/backups/mysql"
+fi
+if [ ! -d "/home/ubuntu/migration/backups/mongodb" ]; then
+    mkdir /home/ubuntu/migration/backups/mongodb
+    echo "created directory /home/ubuntu/migration/backups/mongodb"
+fi
 if [ ! -d "/home/ubuntu/migration/upgraded" ]; then
     mkdir /home/ubuntu/migration/upgraded
     echo "created directory /home/ubuntu/migration/upgraded"
@@ -88,57 +96,18 @@ fi
 
 # 2 sync the data migration backups folder contents to the local file system
 # -------------------------------
-aws s3 cp "s3://${SOURCE_AWS_S3_BACKUP_BUCKET}/backups/openedx-mongo-20240724T060001.tgz" /home/ubuntu/migration/backups/
-aws s3 cp "s3://${SOURCE_AWS_S3_BACKUP_BUCKET}/backups/openedx-mysql-20240724T060001.tgz" /home/ubuntu/migration/backups/
-tar xvzf "${LOCAL_BACKUP_PATH}${SOURCE_MYSQL_FILE_PREFIX}${SOURCE_MYSQL_TAG}.tgz" --directory "${LOCAL_BACKUP_PATH}mysql/"
+aws s3 sync "s3://${SOURCE_AWS_S3_BACKUP_BUCKET}/backups" /home/ubuntu/migration/backups/mongodb/ --exclude "*" --include "openedx-mongo-20240724T060001.tgz"
+aws s3 sync "s3://${SOURCE_AWS_S3_BACKUP_BUCKET}/backups" /home/ubuntu/migration/backups/mysql/ --exclude "*" --include "openedx-mysql-20240724T060001.tgz"
+tar xvzf "${LOCAL_BACKUP_PATH}mysql/${SOURCE_MYSQL_FILE_PREFIX}${SOURCE_MYSQL_TAG}.tgz" --directory "${LOCAL_BACKUP_PATH}mysql/"
 
 # 3. sync the AWS S3 storage of the legacy platform to the target platform's bucket
 # -------------------------------
-aws s3 sync s3://$SOURCE_AWS_S3_STORAGE_BUCKET_SOURCE s3://$TARGET_AWS_S3_STORAGE_BUCKET
+# aws s3 sync s3://$SOURCE_AWS_S3_STORAGE_BUCKET_SOURCE s3://$TARGET_AWS_S3_STORAGE_BUCKET
 
 # take care of any storage folder structure transformations for block storage, video, grades, etcetera
-aws s3 mv s3://$TARGET_AWS_S3_STORAGE_BUCKET/some-poorly-placed-folder/submissions_attachments/ s3://$TARGET_AWS_S3_STORAGE_BUCKET/submissions_attachments/ --recursive
-aws s3 mv s3://$TARGET_AWS_S3_STORAGE_BUCKET/some-poorly-placed-folder/grades-download/ s3://$TARGET_AWS_S3_STORAGE_BUCKET/grades-download/ --recursive
+# aws s3 mv s3://$TARGET_AWS_S3_STORAGE_BUCKET/some-poorly-placed-folder/submissions_attachments/ s3://$TARGET_AWS_S3_STORAGE_BUCKET/submissions_attachments/ --recursive
+# aws s3 mv s3://$TARGET_AWS_S3_STORAGE_BUCKET/some-poorly-placed-folder/grades-download/ s3://$TARGET_AWS_S3_STORAGE_BUCKET/grades-download/ --recursive
 
-# -----------------------------------------------------------------------------
-# 4. initialize Docker and tutor environments
-#
-# Note that in my case I had to run this procedure a half dozen times
-# until it actually worked. If you're as unfortunate as me then you'll
-# potentially need to get your ubuntu instance back to a pristine state
-# depending on what went wrong on your most recent failed attempt.
-#
-# This is how to "reset" your Ubuntu environment to pristine.
-#
-# - shut down and remove any running Docker containers
-# - delete any existing Docker volumes
-# - if tutor is currently installed then uninstall it and all of its modules
-# -----------------------------------------------------------------------------
-docker stop $(docker ps -a -q)
-docker rm $(docker ps -a -q)
-docker rmi $(docker images -a -q)
-docker volume prune
-
-sudo rm -rf "$(tutor config printroot)"
-pip uninstall tutor-openedx
-sudo rm "$(which tutor)"
-pip uninstall tutor -y
-pip uninstall tutor-xqueue -y
-pip uninstall tutor-webui -y
-pip uninstall tutor-richie -y
-pip uninstall tutor-notes -y
-pip uninstall tutor-minio -y
-pip uninstall tutor-mfe -y
-pip uninstall tutor-license -y
-pip uninstall tutor-forum -y
-pip uninstall tutor-ecommerce -y
-pip uninstall tutor-discovery -y
-pip uninstall tutor-android -y
-# additional tutor pip packages -- new to v18
-pip uninstall tutor-cairn -y
-pip uninstall tutor-credentials -y
-pip uninstall tutor-indigo -y
-pip uninstall tutor-jupyter -y
 
 # 5. Setup your local tutor environment
 #
@@ -196,7 +165,6 @@ tutor local quickstart
 # database name 'openedx'.
 # see: https://unix.stackexchange.com/questions/255373/replace-text-quickly-in-very-large-file
 sed -i '/edxapp/ s//openedx/g' ${LOCAL_BACKUP_PATH}mysql/mysql-data-${SOURCE_MYSQL_TAG}.sql
-# -----------------------------------------------------------------------------
 
 
 # 7. Import your legacy MySQL data
