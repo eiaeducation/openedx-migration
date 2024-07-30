@@ -204,7 +204,8 @@ tutor local upgrade --from=lilac        # this step doesn't appear to do anythin
 tutor local quickstart                  # accept all default responses. this step does a LOT.
                                         # you're now running Maple docker.io/overhangio/openedx:13.3.1
                                         #
-                                        # your course version should have upgraded to version 16.
+                                        # your course version *MIGHT* have upgraded to version 16. 
+                                        # if not, the next step will upgrade it to version 17.
                                         # verify by running this query: SELECT id, version FROM openedx.course_overviews_courseoverview;
 
 pip install "tutor[full]==14.2.4"       # installs Nutmeg by default
@@ -218,26 +219,6 @@ tutor local quickstart                  # accept all default responses.
                                         # your course version should have upgraded to version 17.
 
 
-pip install "tutor[full]==15.3.9"       # installs Olive by default
-tutor local upgrade --from=nutmeg       # pulls and runs docker.io/overhangio/openedx:15.3.9
-tutor local quickstart                  # accept all default responses.
-                                        # you're now running Olive
-
-pip install "tutor[full]==16.1.8"       # installs Palm by default
-tutor local upgrade --from=nutmeg       # pulls and runs docker.io/overhangio/openedx:16.1.8
-tutor local quickstart                  # accept all default responses.
-                                        # you're now running Palm
-
-pip install "tutor[full]==17.0.6"       # installs Quince by default
-tutor local upgrade --from=nutmeg       # pulls and runs docker.io/overhangio/openedx:17.0.6
-tutor local quickstart                  # accept all default responses.
-                                        # you're now running Quince
-
-pip install "tutor[full]==18.1.2"       # installs Rosewood by default
-tutor local upgrade --from=nutmeg       # pulls and runs docker.io/overhangio/openedx:18.1.2
-tutor local quickstart                  # accept all default responses.
-                                        # you're now running Rosewood
-
 # IMPORTANT: we need to run legacy database transformation operations to
 #            backfill any data that is assumed to exist in Nutmeg
 #
@@ -247,4 +228,25 @@ tutor local quickstart                  # accept all default responses.
 #            of your MySQL data.
 tutor local run cms ./manage.py cms backfill_course_tabs
 tutor local run cms ./manage.py cms simulate_publish
+
+
+pip install "tutor[full]==15.3.9"       # installs Olive by default
+tutor local upgrade --from=nutmeg       # pulls and runs docker.io/overhangio/openedx:15.3.9
+tutor local launch                      # accept all default responses.
+                                        # you're now running Olive
+
+pip install "tutor[full]==16.1.8"       # installs Palm by default
+tutor local upgrade --from=olive        # pulls and runs docker.io/overhangio/openedx:16.1.8
+tutor local launch                      # accept all default responses.
+                                        # you're now running Palm
+
+pip install "tutor[full]==17.0.6"       # installs Quince by default
+tutor local upgrade --from=palm         # pulls and runs docker.io/overhangio/openedx:17.0.6
+tutor local launch                      # accept all default responses.
+                                        # you're now running Quince
+
+pip install "tutor[full]==18.1.2"       # installs Rosewood by default
+tutor local upgrade --from=quince       # pulls and runs docker.io/overhangio/openedx:18.1.2
+tutor local launch                      # accept all default responses.
+                                        # you're now running Rosewood
 
