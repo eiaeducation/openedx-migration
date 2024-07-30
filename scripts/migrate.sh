@@ -186,3 +186,65 @@ tutor local exec mongodb bash
     use openedx;
     db.dropDatabase();
     exit                    # you can disregard any console error messages from mongo
+
+# 10. Upgrades
+# NOTE the following in my case:
+# - the upgrade --from=koa step only partially worked. The Django db migrations worked, but the MongoDB upgrade broke.
+# - --from=lilac seems to have picked up where the other left off.
+# - --from=maple was benign. it didn't perform any additional operations.
+# -----------------------------------------------------------------------------
+
+pip install "tutor[full]==12.2.0"       # installs Lilac by default
+tutor local upgrade --from=koa          # upgrades MongoDb to v4.0.25
+tutor local quickstart                  # accept all default responses.
+                                        # you're now running Lilac
+
+pip install "tutor[full]==13.3.1"       # installs Maple by default
+tutor local upgrade --from=lilac        # this step doesn't appear to do anything
+tutor local quickstart                  # accept all default responses. this step does a LOT.
+                                        # you're now running Maple docker.io/overhangio/openedx:13.3.1
+                                        #
+                                        # your course version should have upgraded to version 16.
+                                        # verify by running this query: SELECT id, version FROM openedx.course_overviews_courseoverview;
+
+pip install "tutor[full]==14.2.4"       # installs Nutmeg by default
+tutor local upgrade --from=maple        # pulls and runs docker.io/overhangio/openedx:14.2.4
+                                        # generates this exception:
+                                        # MySQLdb._exceptions.OperationalError: (1054, "Unknown column 'course_overviews_courseoverview.entrance_exam_enabled' in 'field list'")
+                                        # because the db migration course_overviews.0026_courseoverview_entrance_exam runs out of sequence.
+tutor local quickstart                  # accept all default responses.
+                                        # you're now running Nutmeg
+                                        #
+                                        # your course version should have upgraded to version 17.
+
+
+pip install "tutor[full]==15.3.9"       # installs Olive by default
+tutor local upgrade --from=nutmeg       # pulls and runs docker.io/overhangio/openedx:15.3.9
+tutor local quickstart                  # accept all default responses.
+                                        # you're now running Olive
+
+pip install "tutor[full]==16.1.8"       # installs Palm by default
+tutor local upgrade --from=nutmeg       # pulls and runs docker.io/overhangio/openedx:16.1.8
+tutor local quickstart                  # accept all default responses.
+                                        # you're now running Palm
+
+pip install "tutor[full]==17.0.6"       # installs Quince by default
+tutor local upgrade --from=nutmeg       # pulls and runs docker.io/overhangio/openedx:17.0.6
+tutor local quickstart                  # accept all default responses.
+                                        # you're now running Quince
+
+pip install "tutor[full]==18.1.2"       # installs Rosewood by default
+tutor local upgrade --from=nutmeg       # pulls and runs docker.io/overhangio/openedx:18.1.2
+tutor local quickstart                  # accept all default responses.
+                                        # you're now running Rosewood
+
+# IMPORTANT: we need to run legacy database transformation operations to
+#            backfill any data that is assumed to exist in Nutmeg
+#
+#            these operations modify MySQL as well as MongoDB data.
+#
+#            these might take several minutes, depending on the size
+#            of your MySQL data.
+tutor local run cms ./manage.py cms backfill_course_tabs
+tutor local run cms ./manage.py cms simulate_publish
+
