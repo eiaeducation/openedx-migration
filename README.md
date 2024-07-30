@@ -51,7 +51,7 @@ sudo apt install python3 python3-pip libyaml-dev python3-venv
 
 https://docs.docker.com/engine/install/ubuntu/
 
-### Add Docker's official GPG key:
+### Add Docker's official GPG key
 
 ```bash
 sudo apt-get update

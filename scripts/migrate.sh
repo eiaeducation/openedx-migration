@@ -44,6 +44,7 @@
 # it's a good idea to run 'df' at the onset of this procedure to take note of
 # your available drive space.
 # -----------------------------------------------------------------------------
+source venv/bin/activate
 
 # local environment variables
 # -----------------------------------------------------------------------------
@@ -60,7 +61,7 @@ SOURCE_MYSQL_FILE_PREFIX="openedx-mysql-"                       # example file: 
 SOURCE_MYSQL_TAG="20240724T060001"                              # a timestamp identifier suffixed to all mysql backup files.
 echo "SOURCE_MYSQL_FILE_: ${SOURCE_MYSQL_FILE_PREFIX}${SOURCE_MYSQL_TAG}"
 
-SOURCE_MONGODB_PREFIX="mongo-dump-"                             # example file: mongo-dump-20230324T020001
+SOURCE_MONGODB_PREFIX="openedx-mongo-"                             # example file: openedx-mongo-20230324T020001
 SOURCE_MONGODB_TAG="20240724T060001"                            # a timestamp identifier suffixed to all mongodb backup files.
 echo "SOURCE_MONGODB_FILE_: ${SOURCE_MONGODB_PREFIX}${SOURCE_MONGODB_TAG}"
 
@@ -148,3 +149,40 @@ echo "LOCAL_TUTOR_MYSQL_ROOT_USERNAME: ${LOCAL_TUTOR_MYSQL_ROOT_USERNAME}"
 
 docker exec -i tutor_local_mysql_1 sh -c "exec mysql -u$LOCAL_TUTOR_MYSQL_ROOT_USERNAME -p$LOCAL_TUTOR_MYSQL_ROOT_PASSWORD -e 'DROP DATABASE IF EXISTS openedx;'"
 docker exec -i tutor_local_mysql_1 sh -c "exec mysql -u$LOCAL_TUTOR_MYSQL_ROOT_USERNAME -p$LOCAL_TUTOR_MYSQL_ROOT_PASSWORD" < "${LOCAL_BACKUP_PATH}mysql/mysql-data-${SOURCE_MYSQL_TAG}.sql"
+
+# 8. take care of any Tutor-specific conflicts that might exist in your MySQL data
+# in my case there was a username name conflict with a service account user that tutor creates.
+#
+# You would encounter conflicts of this nature the first time you run 'tutor local launch' after having restored your MySQL database.
+# -----------------------------------------------------------------------------
+
+# 9. Import your legacy MongoDB
+# -----------------------------------------------------------------------------
+if [ -d "${LOCAL_TUTOR_DATA_DIRECTORY}mongodb/backup" ]; then
+    sudo rm -r "${LOCAL_TUTOR_DATA_DIRECTORY}mongodb/backup"
+    echo "pruned backup working folder "${LOCAL_TUTOR_DATA_DIRECTORY}mongodb/backup""
+fi
+
+#
+# move the source MongoDB backup data into a part of the Ubuntu file
+# system where Tutor's mongo service Docker container can see it.
+# NOTE: a 20Gib dump took anywhere from 5 to 10 minutes to copy
+#
+tar xvzf "${LOCAL_BACKUP_PATH}mongodb/${SOURCE_MONGODB_PREFIX}${SOURCE_MONGODB_TAG}.tgz" --directory "${LOCAL_BACKUP_PATH}mongodb/"
+
+sudo mv "${LOCAL_BACKUP_PATH}mongodb/mongo-dump-${SOURCE_MONGODB_TAG}" ${LOCAL_TUTOR_DATA_DIRECTORY}mongodb/
+sudo mv ${LOCAL_TUTOR_DATA_DIRECTORY}mongodb/mongo-dump-${SOURCE_MONGODB_TAG} ${LOCAL_TUTOR_DATA_DIRECTORY}mongodb/backup
+sudo chown -R systemd-coredump ${LOCAL_TUTOR_DATA_DIRECTORY}mongodb/backup
+sudo chgrp -R systemd-coredump ${LOCAL_TUTOR_DATA_DIRECTORY}mongodb/backup
+
+# restore from your MongoDB backup.
+# NOTE: "Error: Command failed with status 137: docker-compose" means that your EC2 instance is under-sized and ran out of memory
+# during the restore operation.
+tutor local exec mongodb bash
+    # purge any existing data
+    mongo                   # this does not require a username nor password
+    use edxapp;
+    db.dropDatabase();
+    use openedx;
+    db.dropDatabase();
+    exit                    # you can disregard any console error messages from mongo
