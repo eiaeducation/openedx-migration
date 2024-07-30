@@ -1,0 +1,13 @@
+[Unit]
+Description=Run Tutor on startup
+After=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/home/ubuntu
+ExecStart=/bin/bash -c 'source /home/ubuntu/venv/bin/activate && tutor local start'
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

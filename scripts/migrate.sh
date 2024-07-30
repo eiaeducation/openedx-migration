@@ -250,3 +250,13 @@ tutor local upgrade --from=quince       # pulls and runs docker.io/overhangio/op
 tutor local launch                      # accept all default responses.
                                         # you're now running Rosewood
 
+# 11. configure Ubuntu service
+# -----------------------------------------------------------------------------
+sudo systemctl daemon-reload
+sudo systemctl enable tutor.service
+sudo systemctl start tutor.service
+sudo systemctl status tutor.service
+
+# 12. clean up
+# -----------------------------------------------------------------------------
+docker system prune
