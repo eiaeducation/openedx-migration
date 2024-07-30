@@ -218,6 +218,21 @@ tutor local quickstart                  # accept all default responses.
                                         #
                                         # your course version should have upgraded to version 17.
 
+# 11. Verify your upgrade: connect to MySQL
+#      all of your courses should now be version 17
+#
+#    +-----------------------------------------+---------+
+#    | id                                      | version |
+#    +-----------------------------------------+---------+
+#    | course-v1:UBC+001+2021_T1               |      17 |
+#    | course-v1:UBC+2021_sandbox2+2021        |      17 |
+#    | course-v1:UBC+AWS102+2021_T1            |      17 |
+#    | course-v1:UBC+AZ-900+2021_T1            |      17 |
+#    | course-v1:UBC+Blockchain1.1x+2021       |      17 |
+#    | course-v1:UBC+Blockchain1.2x+2021       |      17 |
+#    | course-v1:UBC+CBR002+F22_Nov            |      17 |
+#
+# -----------------------------------------------------------------------------
 
 # IMPORTANT: we need to run legacy database transformation operations to
 #            backfill any data that is assumed to exist in Nutmeg
@@ -250,13 +265,30 @@ tutor local upgrade --from=quince       # pulls and runs docker.io/overhangio/op
 tutor local launch                      # accept all default responses.
                                         # you're now running Rosewood
 
-# 11. configure Ubuntu service
+# 12. configure Ubuntu service
 # -----------------------------------------------------------------------------
 sudo systemctl daemon-reload
 sudo systemctl enable tutor.service
 sudo systemctl start tutor.service
 sudo systemctl status tutor.service
 
-# 12. clean up
+# 13. clean up
 # -----------------------------------------------------------------------------
-docker system prune
+docker system prune                     # removes all stopped containers, all dangling images, and all unused networks
+                                        # this frees up a *LOT* of disk space
+
+do-release-upgrade                      # to upgrade Ubuntu to 22.04 LTS
+sudo apt update
+sudo apt upgrade
+sudo apt dist-upgrade
+sudo apt autoremove
+
+# rebuild the virtual environment
+deactivate
+rm -rf venv
+sudo apt update && sudo apt upgrade -y
+sudo apt install python3 python3-pip libyaml-dev python3-venv
+python3 -m venv venv
+source venv/bin/activate
+pip install "tutor[full]==18.1.2"
+tutor local start
