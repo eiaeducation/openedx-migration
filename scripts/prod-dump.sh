@@ -13,6 +13,8 @@
 USER="root"
 PWD="password"
 DATABASE="edxapp"
+BACKUPS_DIRECTORY="./exports"
+S3_BUCKET="bridgeedu"
 
 # Tables to export
 TABLES=(
@@ -25,7 +27,7 @@ TABLES=(
 # Export each table with the new name
 for TABLE in "${TABLES[@]}"; do
     NEW_TABLE="IMPORT_${TABLE}"
-    OUTPUT_FILE="./exports/${NEW_TABLE}.sql"
+    OUTPUT_FILE="${BACKUPS_DIRECTORY}/${NEW_TABLE}.sql"
     
     # Remove the file if it exists
     if [ -f "$OUTPUT_FILE" ]; then
@@ -35,6 +37,11 @@ for TABLE in "${TABLES[@]}"; do
     # Export the table and rename it in the SQL file
     mysqldump -u${USER} -p${PWD} ${DATABASE} ${TABLE} > "$OUTPUT_FILE"
     sed -i "s/\`${TABLE}\`/\`${NEW_TABLE}\`/g" "$OUTPUT_FILE"
+
+    echo "Exported ${TABLE} to ${OUTPUT_FILE}."
+    echo "Synching with S3"
+    /usr/local/bin/aws s3 sync ${BACKUPS_DIRECTORY} s3://${S3_BUCKET}/sync
 done
 
 echo "Export completed."
+
